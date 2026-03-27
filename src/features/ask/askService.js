@@ -14,6 +14,7 @@ const getWindowPool = () => {
 
 const sessionRepository = require('../common/repositories/session');
 const askRepository = require('./repositories');
+const sttRepository = require('../listen/stt/repositories');
 const { getSystemPrompt } = require('../common/prompts/promptBuilder');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -252,9 +253,15 @@ class AskService {
             const screenshotResult = await captureScreenshot({ quality: 'medium' });
             const screenshotBase64 = screenshotResult.success ? screenshotResult.base64 : null;
 
+            const transcripts = sttRepository.getAllTranscriptsBySessionId(sessionId);
+            const transcriptHistory = transcripts.length > 0
+                ? transcripts.map(t => `${t.speaker === 'Me' ? 'me' : 'them'}: ${t.text}`).join('\n')
+                : 'No conversation transcript available.';
+
             const conversationHistory = this._formatConversationForPrompt(conversationHistoryRaw);
 
-            const systemPrompt = getSystemPrompt('pickle_glass_analysis', conversationHistory, false);
+            const rawSystemPrompt = getSystemPrompt('pickle_glass_analysis', conversationHistory, false);
+            const systemPrompt = rawSystemPrompt.replace('{{CONVERSATION_HISTORY}}', transcriptHistory);
 
             const messages = [
                 { role: 'system', content: systemPrompt },
