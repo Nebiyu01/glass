@@ -81,6 +81,7 @@ module.exports = {
     // Ask
     ipcMain.handle('ask:sendQuestionFromAsk', async (event, userPrompt) => await askService.sendMessage(userPrompt));
     ipcMain.handle('ask:sendQuestionFromSummary', async (event, userPrompt) => await askService.sendMessage(userPrompt));
+    ipcMain.handle('ask:sendQuestionFromListen', async (event, userPrompt) => await askService.sendMessageFromListen(userPrompt));
     ipcMain.handle('ask:toggleAskButton', async () => await askService.toggleAskButton());
     ipcMain.handle('ask:closeAskWindow',  async () => await askService.closeAskWindow());
     

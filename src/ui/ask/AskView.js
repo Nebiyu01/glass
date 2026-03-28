@@ -536,29 +536,62 @@ export class AskView extends LitElement {
         .response-line h3,
         .response-line h4,
         .response-line h5,
-        .response-line h6 {
+        .response-line h6,
+        .response-container h1,
+        .response-container h2,
+        .response-container h3,
+        .response-container h4,
+        .response-container h5,
+        .response-container h6 {
             color: rgba(255, 255, 255, 0.95);
             margin: 16px 0 8px 0;
             font-weight: 600;
         }
 
-        .response-line p {
+        .response-container h1:first-child,
+        .response-container h2:first-child,
+        .response-container h3:first-child {
+            margin-top: 4px;
+        }
+
+        .response-line p,
+        .response-container p {
             margin: 8px 0;
             color: rgba(255, 255, 255, 0.9);
         }
 
+        .response-container p:first-child {
+            margin-top: 4px;
+        }
+
         .response-line ul,
-        .response-line ol {
+        .response-line ol,
+        .response-container ul,
+        .response-container ol {
             margin: 8px 0;
             padding-left: 20px;
         }
 
-        .response-line li {
+        .response-line li,
+        .response-container li {
             margin: 4px 0;
             color: rgba(255, 255, 255, 0.9);
         }
 
-        .response-line code {
+        .response-container strong,
+        .response-container b {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.98);
+        }
+
+        .response-container em,
+        .response-container i {
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .response-line code,
+        .response-container code {
             background: rgba(255, 255, 255, 0.1);
             color: rgba(255, 255, 255, 0.95);
             padding: 2px 6px;
@@ -567,7 +600,8 @@ export class AskView extends LitElement {
             font-size: 13px;
         }
 
-        .response-line pre {
+        .response-line pre,
+        .response-container pre {
             background: rgba(255, 255, 255, 0.05);
             color: rgba(255, 255, 255, 0.95);
             padding: 12px;
@@ -577,12 +611,14 @@ export class AskView extends LitElement {
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .response-line pre code {
+        .response-line pre code,
+        .response-container pre code {
             background: none;
             padding: 0;
         }
 
-        .response-line blockquote {
+        .response-line blockquote,
+        .response-container blockquote {
             border-left: 3px solid rgba(255, 255, 255, 0.3);
             margin: 12px 0;
             padding: 8px 16px;

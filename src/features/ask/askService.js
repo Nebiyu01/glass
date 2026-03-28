@@ -143,59 +143,50 @@ class AskService {
         if (askWindow && !askWindow.isDestroyed()) {
             askWindow.webContents.send('ask:stateUpdate', this.state);
         }
+        const listenWindow = getWindowPool()?.get('listen');
+        if (listenWindow && !listenWindow.isDestroyed()) {
+            listenWindow.webContents.send('ask:stateUpdate', this.state);
+        }
     }
 
     async toggleAskButton(inputScreenOnly = false) {
-        const askWindow = getWindowPool()?.get('ask');
+        const listenWindow = getWindowPool()?.get('listen');
 
-        let shouldSendScreenOnly = false;
-        if (inputScreenOnly && this.state.showTextInput && askWindow && askWindow.isVisible()) {
-            shouldSendScreenOnly = true;
+        if (inputScreenOnly && this.state.showTextInput && listenWindow && listenWindow.isVisible()) {
             await this.sendMessage('', []);
             return;
         }
 
-        const hasContent = this.state.isLoading || this.state.isStreaming || (this.state.currentResponse && this.state.currentResponse.length > 0);
-
-        if (askWindow && askWindow.isVisible() && hasContent) {
-            this.state.showTextInput = !this.state.showTextInput;
+        if (listenWindow && listenWindow.isVisible()) {
+            this.state.showTextInput = true;
             this._broadcastState();
         } else {
-            if (askWindow && askWindow.isVisible()) {
-                internalBridge.emit('window:requestVisibility', { name: 'ask', visible: false });
-                this.state.isVisible = false;
-            } else {
-                console.log('[AskService] Showing hidden Ask window');
-                internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
-                this.state.isVisible = true;
-            }
-            if (this.state.isVisible) {
-                this.state.showTextInput = true;
-                this._broadcastState();
-            }
+            console.log('[AskService] Showing Listen window for AI Response');
+            internalBridge.emit('window:requestVisibility', { name: 'listen', visible: true });
+            this.state.isVisible = true;
+            this.state.showTextInput = true;
+            this._broadcastState();
         }
     }
 
-    async closeAskWindow () {
-            if (this.abortController) {
-                this.abortController.abort('Window closed by user');
-                this.abortController = null;
-            }
-    
-            this.state = {
-                isVisible      : false,
-                isLoading      : false,
-                isStreaming    : false,
-                currentQuestion: '',
-                currentResponse: '',
-                showTextInput  : true,
-            };
-            this._broadcastState();
-    
-            internalBridge.emit('window:requestVisibility', { name: 'ask', visible: false });
-    
-            return { success: true };
+    async closeAskWindow() {
+        if (this.abortController) {
+            this.abortController.abort('Window closed by user');
+            this.abortController = null;
         }
+
+        this.state = {
+            isVisible: false,
+            isLoading: false,
+            isStreaming: false,
+            currentQuestion: '',
+            currentResponse: '',
+            showTextInput: true,
+        };
+        this._broadcastState();
+
+        return { success: true };
+    }
     
 
     /**
@@ -212,12 +203,21 @@ class AskService {
     }
 
     /**
-     * 
+     * Send a message from the Listen window without showing the Ask window.
+     */
+    async sendMessageFromListen(userPrompt) {
+        return this.sendMessage(userPrompt, [], false);
+    }
+
+    /**
+     *
      * @param {string} userPrompt
      * @returns {Promise<{success: boolean, response?: string, error?: string}>}
      */
-    async sendMessage(userPrompt, conversationHistoryRaw=[]) {
-        internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
+    async sendMessage(userPrompt, conversationHistoryRaw=[], showAskWindow=true) {
+        if (showAskWindow) {
+            internalBridge.emit('window:requestVisibility', { name: 'listen', visible: true });
+        }
         this.state = {
             ...this.state,
             isLoading: true,
@@ -291,21 +291,21 @@ class AskService {
 
             try {
                 const response = await streamingLLM.streamChat(messages);
-                const askWin = getWindowPool()?.get('ask');
+                const listenWin = getWindowPool()?.get('listen');
 
-                if (!askWin || askWin.isDestroyed()) {
-                    console.error("[AskService] Ask window is not available to send stream to.");
+                if (!listenWin || listenWin.isDestroyed()) {
+                    console.error("[AskService] Listen window is not available to send stream to.");
                     response.body.getReader().cancel();
-                    return { success: false, error: 'Ask window is not available.' };
+                    return { success: false, error: 'Listen window is not available.' };
                 }
 
                 const reader = response.body.getReader();
                 signal.addEventListener('abort', () => {
                     console.log(`[AskService] Aborting stream reader. Reason: ${signal.reason}`);
-                    reader.cancel(signal.reason).catch(() => { /* 이미 취소된 경우의 오류는 무시 */ });
+                    reader.cancel(signal.reason).catch(() => {});
                 });
 
-                await this._processStream(reader, askWin, sessionId, signal);
+                await this._processStream(reader, listenWin, sessionId, signal);
                 return { success: true };
 
             } catch (multimodalError) {
@@ -323,12 +323,12 @@ class AskService {
                     ];
 
                     const fallbackResponse = await streamingLLM.streamChat(textOnlyMessages);
-                    const askWin = getWindowPool()?.get('ask');
+                    const listenWin = getWindowPool()?.get('listen');
 
-                    if (!askWin || askWin.isDestroyed()) {
-                        console.error("[AskService] Ask window is not available for fallback response.");
+                    if (!listenWin || listenWin.isDestroyed()) {
+                        console.error("[AskService] Listen window is not available for fallback response.");
                         fallbackResponse.body.getReader().cancel();
-                        return { success: false, error: 'Ask window is not available.' };
+                        return { success: false, error: 'Listen window is not available.' };
                     }
 
                     const fallbackReader = fallbackResponse.body.getReader();
@@ -337,7 +337,7 @@ class AskService {
                         fallbackReader.cancel(signal.reason).catch(() => {});
                     });
 
-                    await this._processStream(fallbackReader, askWin, sessionId, signal);
+                    await this._processStream(fallbackReader, listenWin, sessionId, signal);
                     return { success: true };
                 } else {
                     // 다른 종류의 에러이거나 스크린샷이 없었다면 그대로 throw
@@ -355,10 +355,10 @@ class AskService {
             };
             this._broadcastState();
 
-            const askWin = getWindowPool()?.get('ask');
-            if (askWin && !askWin.isDestroyed()) {
+            const listenWin = getWindowPool()?.get('listen');
+            if (listenWin && !listenWin.isDestroyed()) {
                 const streamError = error.message || 'Unknown error occurred';
-                askWin.webContents.send('ask-response-stream-error', { error: streamError });
+                listenWin.webContents.send('ask-response-stream-error', { error: streamError });
             }
 
             return { success: false, error: error.message };
@@ -420,6 +420,7 @@ class AskService {
         } finally {
             this.state.isStreaming = false;
             this.state.currentResponse = fullResponse;
+            this.state.showTextInput = true;
             this._broadcastState();
             if (fullResponse) {
                  try {

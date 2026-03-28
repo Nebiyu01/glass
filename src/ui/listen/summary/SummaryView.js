@@ -331,6 +331,7 @@ export class SummaryView extends LitElement {
                 });
 
                 this.isLibrariesLoaded = true;
+                this.requestUpdate();
                 console.log('Markdown libraries loaded successfully');
             }
 
@@ -478,9 +479,7 @@ export class SummaryView extends LitElement {
                                               data-markdown-id="summary-${index}"
                                               data-original-text="${bullet}"
                                               @click=${() => this.handleMarkdownClick(bullet)}
-                                          >
-                                              ${bullet}
-                                          </div>
+                                          ></div>
                                       `
                                   )
                             : html` <div class="request-item">No content yet...</div> `}
@@ -496,9 +495,7 @@ export class SummaryView extends LitElement {
                                                   data-markdown-id="topic-${index}"
                                                   data-original-text="${bullet}"
                                                   @click=${() => this.handleMarkdownClick(bullet)}
-                                              >
-                                                  ${bullet}
-                                              </div>
+                                              ></div>
                                           `
                                       )}
                               `
@@ -515,9 +512,7 @@ export class SummaryView extends LitElement {
                                                   data-markdown-id="action-${index}"
                                                   data-original-text="${action}"
                                                   @click=${() => this.handleMarkdownClick(action)}
-                                              >
-                                                  ${action}
-                                              </div>
+                                              ></div>
                                           `
                                       )}
                               `
@@ -532,9 +527,7 @@ export class SummaryView extends LitElement {
                                               data-markdown-id="followup-${index}"
                                               data-original-text="${followUp}"
                                               @click=${() => this.handleMarkdownClick(followUp)}
-                                          >
-                                              ${followUp}
-                                          </div>
+                                          ></div>
                                       `
                                   )}
                               `

@@ -1,4 +1,5 @@
 import { html, css, LitElement } from '../assets/lit-core-2.7.4.min.js';
+import { parser, parser_write, parser_end, default_renderer } from '../assets/smd.js';
 import './stt/SttView.js';
 import './summary/SummaryView.js';
 
@@ -163,8 +164,8 @@ export class ListenView extends LitElement {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 16px;
-            min-height: 32px;
+            padding: 4px 8px 4px 12px;
+            min-height: 36px;
             position: relative;
             z-index: 1;
             width: 100%;
@@ -173,26 +174,36 @@ export class ListenView extends LitElement {
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .bar-left-text {
-            color: white;
-            font-size: 13px;
-            font-family: 'Helvetica Neue', sans-serif;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
-            white-space: nowrap;
+        .tab-bar {
+            display: flex;
+            gap: 2px;
+            align-items: center;
             flex: 1;
-            min-width: 0;
-            max-width: 200px;
         }
 
-        .bar-left-text-content {
-            display: inline-block;
-            transition: transform 0.3s ease;
+        .tab-btn {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.45);
+            border: none;
+            outline: none;
+            box-shadow: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.15s ease, background-color 0.15s ease;
+            white-space: nowrap;
         }
 
-        .bar-left-text-content.slide-in {
-            animation: slideIn 0.3s ease forwards;
+        .tab-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.12);
         }
 
         .bar-controls {
@@ -200,40 +211,271 @@ export class ListenView extends LitElement {
             gap: 4px;
             align-items: center;
             flex-shrink: 0;
-            width: 120px;
             justify-content: flex-end;
             box-sizing: border-box;
             padding: 4px;
         }
 
-        .toggle-button {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: transparent;
-            color: rgba(255, 255, 255, 0.9);
-            border: none;
-            outline: none;
-            box-shadow: none;
-            padding: 4px 8px;
-            border-radius: 5px;
+        .content-area {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            min-height: 120px;
+        }
+
+        .ai-response-container {
+            padding: 12px 16px 16px 16px;
+            min-height: 120px;
+            max-height: 480px;
+            overflow-y: auto;
+            user-select: text;
+            cursor: text;
+        }
+
+        .ai-response-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .ai-response-container::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 3px;
+        }
+        .ai-response-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .ai-question {
             font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            height: 24px;
-            white-space: nowrap;
-            transition: background-color 0.15s ease;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 10px;
+            font-style: italic;
+            border-left: 2px solid rgba(255,255,255,0.15);
+            padding-left: 8px;
+        }
+
+        .ai-response-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .ai-response-text p {
+            margin: 0 0 10px 0;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+
+        .ai-response-text p:first-child {
+            margin-top: 0;
+        }
+
+        .ai-response-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .ai-response-text h1,
+        .ai-response-text h2,
+        .ai-response-text h3,
+        .ai-response-text h4,
+        .ai-response-text h5,
+        .ai-response-text h6 {
+            color: rgba(255, 255, 255, 0.98);
+            font-weight: 600;
+            margin: 14px 0 6px 0;
+            line-height: 1.4;
+        }
+
+        .ai-response-text h1:first-child,
+        .ai-response-text h2:first-child,
+        .ai-response-text h3:first-child {
+            margin-top: 0;
+        }
+
+        .ai-response-text ul,
+        .ai-response-text ol {
+            margin: 6px 0 10px 0;
+            padding-left: 20px;
+        }
+
+        .ai-response-text li {
+            margin: 4px 0;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+
+        .ai-response-text strong,
+        .ai-response-text b {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.98);
+        }
+
+        .ai-response-text em,
+        .ai-response-text i {
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .ai-response-text code {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.95);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+
+        .ai-response-text pre {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+
+        .ai-response-text pre code {
+            background: none;
+            padding: 0;
+            font-size: 11px;
+        }
+
+        .ai-response-text blockquote {
+            border-left: 3px solid rgba(255, 255, 255, 0.25);
+            margin: 8px 0;
+            padding: 6px 12px;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .cursor-blink {
+            display: inline-block;
+            animation: cursorPulse 0.8s step-end infinite;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+        }
+
+        @keyframes cursorPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .ai-empty {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.3);
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .ai-thinking {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            padding: 24px 0;
             justify-content: center;
         }
 
-        .toggle-button:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .thinking-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            animation: thinkingPulse 1.2s ease-in-out infinite;
         }
 
-        .toggle-button svg {
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes thinkingPulse {
+            0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            white-space: nowrap;
+            outline: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .input-row input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 7px 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            outline: none;
+            font-family: 'Helvetica Neue', sans-serif;
+            transition: border-color 0.15s ease;
+            cursor: text;
+            user-select: text;
+        }
+
+        .input-row input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .input-row input:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .input-row input:disabled {
+            opacity: 0.5;
+        }
+
+        .send-btn {
+            background: rgba(147, 51, 234, 0.7);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
             flex-shrink: 0;
-            width: 12px;
-            height: 12px;
+            transition: background-color 0.15s ease;
+            outline: none;
+            padding: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: rgba(147, 51, 234, 0.9);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
         }
 
         .copy-button {
@@ -292,8 +534,13 @@ export class ListenView extends LitElement {
         /* ────────────────[ GLASS BYPASS ]─────────────── */
         :host-context(body.has-glass) .assistant-container,
         :host-context(body.has-glass) .top-bar,
-        :host-context(body.has-glass) .toggle-button,
+        :host-context(body.has-glass) .tab-btn,
         :host-context(body.has-glass) .copy-button,
+        :host-context(body.has-glass) .action-btn,
+        :host-context(body.has-glass) .input-row,
+        :host-context(body.has-glass) .input-row input,
+        :host-context(body.has-glass) .send-btn,
+        :host-context(body.has-glass) .ai-response-container,
         :host-context(body.has-glass) .transcription-container,
         :host-context(body.has-glass) .insights-container,
         :host-context(body.has-glass) .stt-message,
@@ -379,8 +626,9 @@ export class ListenView extends LitElement {
             display: none !important;
         }
 
-        :host-context(body.has-glass) .toggle-button:hover,
+        :host-context(body.has-glass) .tab-btn:hover,
         :host-context(body.has-glass) .copy-button:hover,
+        :host-context(body.has-glass) .action-btn:hover,
         :host-context(body.has-glass) .outline-item:hover,
         :host-context(body.has-glass) .request-item.clickable:hover,
         :host-context(body.has-glass) .markdown-content:hover {
@@ -405,7 +653,7 @@ export class ListenView extends LitElement {
 
         :host-context(body.has-glass) .assistant-container,
         :host-context(body.has-glass) .stt-message,
-        :host-context(body.has-glass) .toggle-button,
+        :host-context(body.has-glass) .tab-btn,
         :host-context(body.has-glass) .copy-button {
             border-radius: 0 !important;
         }
@@ -419,7 +667,7 @@ export class ListenView extends LitElement {
     `;
 
     static properties = {
-        viewMode: { type: String },
+        activeTab: { type: String },
         isHovering: { type: Boolean },
         isAnimating: { type: Boolean },
         copyState: { type: String },
@@ -427,13 +675,19 @@ export class ListenView extends LitElement {
         captureStartTime: { type: Number },
         isSessionActive: { type: Boolean },
         hasCompletedRecording: { type: Boolean },
+        // Ask state
+        askCurrentResponse: { type: String },
+        askCurrentQuestion: { type: String },
+        askIsLoading: { type: Boolean },
+        askIsStreaming: { type: Boolean },
+        inputValue: { type: String },
     };
 
     constructor() {
         super();
         this.isSessionActive = false;
         this.hasCompletedRecording = false;
-        this.viewMode = 'insights';
+        this.activeTab = 'ai-response';
         this.isHovering = false;
         this.isAnimating = false;
         this.elapsedTime = '00:00';
@@ -443,13 +697,69 @@ export class ListenView extends LitElement {
         this.isThrottled = false;
         this.copyState = 'idle';
         this.copyTimeout = null;
+        this.askCurrentResponse = '';
+        this.askCurrentQuestion = '';
+        this.askIsLoading = false;
+        this.askIsStreaming = false;
+        this.inputValue = '';
+
+        this._smdParser = null;
+        this._smdContainer = null;
+        this._lastProcessedLength = 0;
 
         this.adjustWindowHeight = this.adjustWindowHeight.bind(this);
+        this.handleSendMessage = this.handleSendMessage.bind(this);
+        this.handleInputKeydown = this.handleInputKeydown.bind(this);
+    }
+
+    _resetSmdParser() {
+        this._smdParser = null;
+        this._smdContainer = null;
+        this._lastProcessedLength = 0;
+    }
+
+    _renderAiResponse() {
+        const container = this.shadowRoot?.getElementById('aiResponseContent');
+        if (!container) return;
+
+        if (this.askIsLoading && !this.askCurrentResponse) {
+            container.innerHTML = '';
+            this._resetSmdParser();
+            return;
+        }
+
+        if (!this.askCurrentResponse) {
+            container.innerHTML = '';
+            this._resetSmdParser();
+            return;
+        }
+
+        try {
+            if (!this._smdParser || this._smdContainer !== container) {
+                this._smdContainer = container;
+                this._smdContainer.innerHTML = '';
+                const renderer = default_renderer(this._smdContainer);
+                this._smdParser = parser(renderer);
+                this._lastProcessedLength = 0;
+            }
+
+            const newText = this.askCurrentResponse.slice(this._lastProcessedLength);
+            if (newText.length > 0) {
+                parser_write(this._smdParser, newText);
+                this._lastProcessedLength = this.askCurrentResponse.length;
+            }
+
+            if (!this.askIsStreaming && !this.askIsLoading) {
+                parser_end(this._smdParser);
+            }
+        } catch (error) {
+            console.error('Error rendering AI response markdown:', error);
+            container.textContent = this.askCurrentResponse;
+        }
     }
 
     connectedCallback() {
         super.connectedCallback();
-        // Only start timer if session is active
         if (this.isSessionActive) {
             this.startTimer();
         }
@@ -461,7 +771,6 @@ export class ListenView extends LitElement {
                 if (!wasActive && isActive) {
                     this.hasCompletedRecording = false;
                     this.startTimer();
-                    // Reset child components
                     this.updateComplete.then(() => {
                         const sttView = this.shadowRoot.querySelector('stt-view');
                         const summaryView = this.shadowRoot.querySelector('summary-view');
@@ -475,6 +784,21 @@ export class ListenView extends LitElement {
                     this.stopTimer();
                     this.requestUpdate();
                 }
+            });
+
+            // Listen to ask state updates from the backend
+            window.api.askView.onAskStateUpdate((event, state) => {
+                const hadResponse = this.askCurrentResponse || this.askIsLoading || this.askIsStreaming;
+                this.askCurrentResponse = state.currentResponse || '';
+                this.askCurrentQuestion = state.currentQuestion || '';
+                this.askIsLoading = state.isLoading || false;
+                this.askIsStreaming = state.isStreaming || false;
+                // Auto-switch to AI Response tab when response arrives
+                if ((state.isLoading || state.isStreaming || state.currentResponse) && this.activeTab !== 'ai-response') {
+                    this.activeTab = 'ai-response';
+                }
+                this.requestUpdate();
+                this.adjustWindowHeightThrottled();
             });
         }
     }
@@ -496,9 +820,7 @@ export class ListenView extends LitElement {
         this.captureStartTime = Date.now();
         this.timerInterval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - this.captureStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60)
-                .toString()
-                .padStart(2, '0');
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
             const seconds = (elapsed % 60).toString().padStart(2, '0');
             this.elapsedTime = `${minutes}:${seconds}`;
             this.requestUpdate();
@@ -518,23 +840,27 @@ export class ListenView extends LitElement {
         this.updateComplete
             .then(() => {
                 const topBar = this.shadowRoot.querySelector('.top-bar');
-                const activeContent = this.viewMode === 'transcript'
-                    ? this.shadowRoot.querySelector('stt-view')
-                    : this.shadowRoot.querySelector('summary-view');
+                const quickActions = this.shadowRoot.querySelector('.quick-actions');
+                const inputRow = this.shadowRoot.querySelector('.input-row');
 
-                if (!topBar || !activeContent) return;
+                let activeContent;
+                if (this.activeTab === 'transcript') {
+                    activeContent = this.shadowRoot.querySelector('stt-view');
+                } else if (this.activeTab === 'ai-response') {
+                    activeContent = this.shadowRoot.querySelector('.ai-response-container');
+                } else {
+                    activeContent = this.shadowRoot.querySelector('summary-view');
+                }
+
+                if (!topBar) return;
 
                 const topBarHeight = topBar.offsetHeight;
+                const contentHeight = activeContent ? activeContent.scrollHeight : 150;
+                const quickActionsHeight = quickActions ? quickActions.offsetHeight : 0;
+                const inputRowHeight = inputRow ? inputRow.offsetHeight : 0;
 
-                const contentHeight = activeContent.scrollHeight;
-
-                const idealHeight = topBarHeight + contentHeight;
-
-                const targetHeight = Math.min(700, idealHeight);
-
-                console.log(
-                    `[Height Adjusted] Mode: ${this.viewMode}, TopBar: ${topBarHeight}px, Content: ${contentHeight}px, Ideal: ${idealHeight}px, Target: ${targetHeight}px`
-                );
+                const idealHeight = topBarHeight + contentHeight + quickActionsHeight + inputRowHeight;
+                const targetHeight = Math.min(700, Math.max(260, idealHeight));
 
                 window.api.listenView.adjustWindowHeight('listen', targetHeight);
             })
@@ -543,29 +869,16 @@ export class ListenView extends LitElement {
             });
     }
 
-    toggleViewMode() {
-        this.viewMode = this.viewMode === 'insights' ? 'transcript' : 'insights';
-        this.requestUpdate();
-    }
-
-    handleCopyHover(isHovering) {
-        this.isHovering = isHovering;
-        if (isHovering) {
-            this.isAnimating = true;
-        } else {
-            this.isAnimating = false;
-        }
-        this.requestUpdate();
-    }
-
     async handleCopy() {
         if (this.copyState === 'copied') return;
 
         let textToCopy = '';
 
-        if (this.viewMode === 'transcript') {
+        if (this.activeTab === 'transcript') {
             const sttView = this.shadowRoot.querySelector('stt-view');
             textToCopy = sttView ? sttView.getTranscriptText() : '';
+        } else if (this.activeTab === 'ai-response') {
+            textToCopy = this.askCurrentResponse || '';
         } else {
             const summaryView = this.shadowRoot.querySelector('summary-view');
             textToCopy = summaryView ? summaryView.getSummaryText() : '';
@@ -573,15 +886,10 @@ export class ListenView extends LitElement {
 
         try {
             await navigator.clipboard.writeText(textToCopy);
-            console.log('Content copied to clipboard');
-
             this.copyState = 'copied';
             this.requestUpdate();
 
-            if (this.copyTimeout) {
-                clearTimeout(this.copyTimeout);
-            }
-
+            if (this.copyTimeout) clearTimeout(this.copyTimeout);
             this.copyTimeout = setTimeout(() => {
                 this.copyState = 'idle';
                 this.requestUpdate();
@@ -592,14 +900,10 @@ export class ListenView extends LitElement {
     }
 
     adjustWindowHeightThrottled() {
-        if (this.isThrottled) {
-            return;
-        }
+        if (this.isThrottled) return;
 
         this.adjustWindowHeight();
-
         this.isThrottled = true;
-
         this.adjustHeightThrottle = setTimeout(() => {
             this.isThrottled = false;
         }, 16);
@@ -608,13 +912,20 @@ export class ListenView extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
 
-        if (changedProperties.has('viewMode')) {
+        if (changedProperties.has('activeTab')) {
             this.adjustWindowHeight();
+            if (this.activeTab === 'ai-response') {
+                this._resetSmdParser();
+                this._renderAiResponse();
+            }
+        }
+
+        if (changedProperties.has('askCurrentResponse') || changedProperties.has('askIsLoading') || changedProperties.has('askIsStreaming')) {
+            this._renderAiResponse();
         }
     }
 
-    handleSttMessagesUpdated(event) {
-        // Handle messages update from SttView if needed
+    handleSttMessagesUpdated() {
         this.adjustWindowHeightThrottled();
     }
 
@@ -623,44 +934,58 @@ export class ListenView extends LitElement {
         setTimeout(() => this.adjustWindowHeight(), 200);
     }
 
+    async handleSendMessage(promptOverride) {
+        const text = typeof promptOverride === 'string' ? promptOverride : this.inputValue.trim();
+        if (!text || this.askIsLoading || this.askIsStreaming) return;
+
+        this.inputValue = '';
+        const inputEl = this.shadowRoot?.getElementById('listenTextInput');
+        if (inputEl) inputEl.value = '';
+
+        if (window.api) {
+            try {
+                await window.api.listenView.sendMessageFromListen(text);
+            } catch (err) {
+                console.error('Error sending message from listen view:', err);
+            }
+        }
+    }
+
+    handleInputKeydown(e) {
+        if (e.isComposing) return;
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.handleSendMessage();
+        }
+    }
+
+    handleInputChange(e) {
+        this.inputValue = e.target.value;
+    }
+
+    getInputPlaceholder() {
+        if (this.activeTab === 'transcript') return 'Ask about the transcript...';
+        if (this.activeTab === 'ai-response') return 'Ask a follow-up...';
+        return 'Ask about the meeting...';
+    }
+
     render() {
-        const displayText = this.isHovering
-            ? this.viewMode === 'transcript'
-                ? 'Copy Transcript'
-                : 'Copy Glass Analysis'
-            : this.viewMode === 'insights'
-            ? `Live insights`
-            : `Glass is Listening ${this.elapsedTime}`;
+        const isBusy = this.askIsLoading || this.askIsStreaming;
 
         return html`
             <div class="assistant-container">
+                <!-- Top bar with tabs and timer -->
                 <div class="top-bar">
-                    <div class="bar-left-text">
-                        <span class="bar-left-text-content ${this.isAnimating ? 'slide-in' : ''}">${displayText}</span>
+                    <div class="tab-bar">
+                        <button class="tab-btn ${this.activeTab === 'ai-response' ? 'active' : ''}" @click=${() => { this.activeTab = 'ai-response'; }}>AI Response</button>
+                        <button class="tab-btn ${this.activeTab === 'transcript' ? 'active' : ''}" @click=${() => { this.activeTab = 'transcript'; }}>Transcript</button>
+                        <button class="tab-btn ${this.activeTab === 'activity' ? 'active' : ''}" @click=${() => { this.activeTab = 'activity'; }}>Activity</button>
                     </div>
                     <div class="bar-controls">
-                        <button class="toggle-button" @click=${this.toggleViewMode}>
-                            ${this.viewMode === 'insights'
-                                ? html`
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-                                          <circle cx="12" cy="12" r="3" />
-                                      </svg>
-                                      <span>Show Transcript</span>
-                                  `
-                                : html`
-                                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                          <path d="M9 11l3 3L22 4" />
-                                          <path d="M22 12v7a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-                                      </svg>
-                                      <span>Show Insights</span>
-                                  `}
-                        </button>
+                        ${this.isSessionActive ? html`<span class="timer">${this.elapsedTime}</span>` : ''}
                         <button
                             class="copy-button ${this.copyState === 'copied' ? 'copied' : ''}"
                             @click=${this.handleCopy}
-                            @mouseenter=${() => this.handleCopyHover(true)}
-                            @mouseleave=${() => this.handleCopyHover(false)}
                         >
                             <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -673,15 +998,64 @@ export class ListenView extends LitElement {
                     </div>
                 </div>
 
-                <stt-view 
-                    .isVisible=${this.viewMode === 'transcript'}
-                    @stt-messages-updated=${this.handleSttMessagesUpdated}
-                ></stt-view>
+                <!-- Content area -->
+                <div class="content-area">
+                    <stt-view
+                        .isVisible=${this.activeTab === 'transcript'}
+                        @stt-messages-updated=${this.handleSttMessagesUpdated}
+                    ></stt-view>
 
-                <summary-view 
-                    .isVisible=${this.viewMode === 'insights'}
-                    .hasCompletedRecording=${this.hasCompletedRecording}
-                ></summary-view>
+                    <summary-view
+                        .isVisible=${this.activeTab === 'activity'}
+                        .hasCompletedRecording=${this.hasCompletedRecording}
+                    ></summary-view>
+
+                    ${this.activeTab === 'ai-response' ? html`
+                        <div class="ai-response-container">
+                            ${isBusy && !this.askCurrentResponse ? html`
+                                <div class="ai-thinking">
+                                    <span class="thinking-dot"></span>
+                                    <span class="thinking-dot"></span>
+                                    <span class="thinking-dot"></span>
+                                </div>
+                            ` : this.askCurrentResponse ? html`
+                                ${this.askCurrentQuestion ? html`
+                                    <div class="ai-question">${this.askCurrentQuestion}</div>
+                                ` : ''}
+                                <div class="ai-response-text" id="aiResponseContent"></div>
+                                ${isBusy ? html`<span class="cursor-blink">▋</span>` : ''}
+                            ` : html`
+                                <div class="ai-empty">No response yet. Ask a question below.</div>
+                            `}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Quick action buttons -->
+                <div class="quick-actions">
+                    <button class="action-btn" @click=${() => this.handleSendMessage('Recap the conversation so far')}>Recap</button>
+                    <button class="action-btn" @click=${() => this.handleSendMessage('What should I say next?')}>What should I say?</button>
+                    <button class="action-btn" @click=${() => this.handleSendMessage('Suggest follow-up questions')}>Follow-up question</button>
+                    <button class="action-btn" @click=${() => this.handleSendMessage('List action items from this conversation')}>Action items</button>
+                </div>
+
+                <!-- Persistent input -->
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="listenTextInput"
+                        .value=${this.inputValue}
+                        placeholder="${this.getInputPlaceholder()}"
+                        @input=${this.handleInputChange}
+                        @keydown=${this.handleInputKeydown}
+                        ?disabled=${isBusy}
+                    />
+                    <button class="send-btn" @click=${this.handleSendMessage} ?disabled=${isBusy || !this.inputValue.trim()}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         `;
     }

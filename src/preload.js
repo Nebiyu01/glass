@@ -174,7 +174,10 @@ contextBridge.exposeInMainWorld('api', {
   listenView: {
     // Window Management
     adjustWindowHeight: (winName, height) => ipcRenderer.invoke('adjust-window-height', { winName, height }),
-    
+
+    // Message Handling
+    sendMessageFromListen: (text) => ipcRenderer.invoke('ask:sendQuestionFromListen', text),
+
     // Listeners
     onSessionStateChanged: (callback) => ipcRenderer.on('session-state-changed', callback),
     removeOnSessionStateChanged: (callback) => ipcRenderer.removeListener('session-state-changed', callback)
